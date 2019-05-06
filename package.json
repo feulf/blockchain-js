@@ -16,5 +16,8 @@
     "url": "https://github.com/feulf/blockchain-js/issues"
   },
   "homepage": "https://github.com/feulf/blockchain-js#readme",
-  "keywords": []
+  "keywords": [],
+  "dependencies": {
+    "express": "^4.16.4"
+  }
 }
