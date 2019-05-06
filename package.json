@@ -1,0 +1,20 @@
+{
+  "name": "blockchain",
+  "version": "1.0.0",
+  "description": "A simple blockchain in JavaScript",
+  "main": "blockchain.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feulf/blockchain-js.git"
+  },
+  "author": "Federico Ulfo",
+  "license": "Mit",
+  "bugs": {
+    "url": "https://github.com/feulf/blockchain-js/issues"
+  },
+  "homepage": "https://github.com/feulf/blockchain-js#readme",
+  "keywords": []
+}
