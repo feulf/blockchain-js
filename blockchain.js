@@ -1,4 +1,7 @@
 const express = require('express')
+const bodyParser = require('body-parser')
+const uuidv1 = require('uuid/v1')
+const crypto = require('crypto')
 const app = express()
 const port = 5000
 
@@ -11,18 +14,53 @@ function Blockchain() {
 
     this.newBlock = (proof, previousHash) => {
         var block = {
-            index: this.chain.length() + 1,
-            timestamp: Date.getTime(),
+            index: chain.length + 1,
+            timestamp: new Date().getTime(),
             transactions: this.currentTransactions,
             proof: proof,
-            previous_hash: previousHash || this.hash(this.chain[-1]),
+            previous_hash: previousHash || this.hash(chain[-1]),
         }
 
         // Reset the current list of transactions
         this.currentTransactions = []
-        this.chain.push(block)
+        chain.push(block)
         return block
     }
+
+    this.newTransaction = (sender, recipient, amount) => {
+        this.currentTransactions.append({
+            sender,
+            recipient,
+            amount,
+        })
+        return self.lastBlock['index'] + 1
+    }
+
+    this.lastBlock = () => chain[-1]
+
+    this.hash = block => {
+        var blockString = JSON.stringify(block, Object.keys(block).sort())
+        return crypto.createHash('sha256').update(blockString).digest('hex')
+    }
+
+    this.proofOfWork = (block=null, difficulty=4) => {
+        block = block || self.lastBlock()
+        while (true) {
+            block["nonce"] = this.nonce()
+            if (this.powIsAcceptable(this.hash(block), difficulty)) {
+                console.log("Block hash is {self.hash(block)} with random string " + block['nonce'])
+                return block
+            }
+        }
+    }
+
+    this.validProof = (lastProof, proof, lastHash) => {
+        var guess = (lastProof + proof + lastHash) // hex
+        var guessHash = crypto.createHash('sha256').update(guess).digest('hex')
+        return guessHash.substr(4) == "0000"
+    }
+
+    this.nonce = () => crypto.createHash('sha256').update(uuidv1()).digest('hex')
 
 
     // Create the genesis block
@@ -71,7 +109,7 @@ app.post('/transactions/new', bodyParser.json(), (req, res) => {
 
 app.get('/chain', (req, res) => res.send({
     chain: blockchain.chain,
-    length: len(blockchain.chain)
+    length: blockchain.chain.length
 }))
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
