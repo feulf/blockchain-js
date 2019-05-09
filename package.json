@@ -18,8 +18,10 @@
   "homepage": "https://github.com/feulf/blockchain-js#readme",
   "keywords": [],
   "dependencies": {
+    "crypto": "^1.0.1",
     "express": "^4.16.4",
-    "sha256": "^0.2.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
