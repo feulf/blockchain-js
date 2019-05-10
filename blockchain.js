@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const uuidv4 = require('uuid/v4')
 const crypto = require('crypto')
 const request = require('request-promise');
+const utf8 = require('utf8');
 
 const app = express()
 const port = process.env.PORT ? process.env.PORT : 5000
@@ -192,7 +193,9 @@ class Blockchain {
      *  @return: <bool> True if correct, False if not.
      */
     static validProof(lastProof, proof, lastHash) {
-        const guess = lastProof + proof + lastHash
+        const guess = utf8.encode(lastProof + proof + lastHash)
+        console.log({lastProof, proof, lastHash, sum: (lastProof + proof + lastHash), guess})
+
         const guessHash = crypto.createHash("sha256").update(guess).digest("hex")
         return guessHash.substr(0, 3) === "000"
     }
