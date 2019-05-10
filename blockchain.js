@@ -18,8 +18,8 @@ class Blockchain {
     /**
      * Creates a new block containing any outstanding transactions
      *
+     * @param proof
      * @param previousHash: the hash of the previous block
-     * @param nonce: the random string used to make this block hash satisfy the difficulty requirements
      */
     newBlock(proof, previousHash) {
 
@@ -28,10 +28,10 @@ class Blockchain {
             timestamp: new Date().toISOString(),
             transactions: this.pendingTransactions,
             proof: proof,
-            previousHash: previousHash,
+            previous_hash: previousHash,
         }
         this.chain.push(block)
-        block.hash = this.hash(block)
+        block.hash = Blockchain.hash(block)
 
         // Reset pending transactions
         this.pendingTransactions = []
@@ -43,7 +43,7 @@ class Blockchain {
      * Generates a SHA-256 hash of the block
      * @param block
      */
-    hash(block) {
+    static hash(block) {
         const blockString = JSON.stringify(block, Object.keys(block).sort())
         return crypto.createHash("sha256").update(blockString).digest("hex")
     }
@@ -61,14 +61,14 @@ class Blockchain {
      * @param hashOfBlock: the hash of the block (hex string)
      * @param difficulty: an integer defining the difficulty
      */
-    powIsAcceptable(hashOfBlock, difficulty) {
-        return hashOfBlock.slice(0, difficulty) == "0".repeat(difficulty)
+    static powIsAcceptable(hashOfBlock, difficulty) {
+        return hashOfBlock.slice(0, difficulty) === "0".repeat(difficulty)
     }
 
     /**
      * Generates a random 32 byte string
      */
-    nonce() {
+    static nonce() {
         return crypto.createHash("sha256").update(crypto.randomBytes(32)).digest("hex")
     }
 
@@ -84,10 +84,10 @@ class Blockchain {
     proofOfWork(_block = null, difficulty) {
         const block = _block || this.lastBlock()
         while (true) {
-            block.nonce = this.nonce()
-            if (this.powIsAcceptable(this.hash(block), difficulty)) {
+            block.nonce = Blockchain.nonce()
+            if (Blockchain.powIsAcceptable(Blockchain.hash(block), difficulty)) {
                 console.log("We mined a block!")
-                console.log(` - Block hash: ${this.hash(block)}`)
+                console.log(` - Block hash: ${Blockchain.hash(block)}`)
                 console.log(` - nonce:      ${block.nonce}`)
                 return block
             }
@@ -118,22 +118,21 @@ class Blockchain {
      * @param chain: A blockchain
      * @return boolean if valid, false if not
      */
-    validChain(chain) {
+    static validChain(chain) {
         let lastBlock = chain[0]
         let currentIndex = 1
 
-        while (currentIndex < len(chain)) {
+        while (currentIndex < chain['length']) {
             const block = chain[currentIndex]
-            console.log(last_block)
-            console.log(block)
 
             // Check that the hash of the block is correct
-            const lastBlockHash = self.hash(last_block)
+            const lastBlockHash = this.hash(lastBlock)
+
             if (block['previous_hash'] !== lastBlockHash)
                 return false
 
             // Check that the Proof of Work is correct
-            if (!this.validProof(lastBlock['proof'], block['proof'], lastBlockHash))
+            if (!Blockchain.validProof(lastBlock['proof'], block['proof'], lastBlockHash))
                 return false
 
             lastBlock = block
@@ -154,27 +153,26 @@ class Blockchain {
         let newChain = null
 
         // We're only looking for chains longer than ours
-        let maxLength = this.chain.length
+        let maxLength = this.chain['length']
 
         // Grab and verify the chains from all the nodes in our network
         for (const key in neighbours) {
-
             const node = neighbours[key]
             try {
-                const response = await request(`http://${node}/chain`)
-                if (response.statusCode === 200) {
-                    const length = JSON.parse(response.getBody())['length']
-                    const chain = JSON.parse(response.getBody())['chain']
+                const response = await request({
+                    uri: `http://${node}/chain`,
+                    json: true
+                })
+                const length = response['length']
+                const chain = response['chain']
 
-                    // Check if the length is longer and the chain is valid
-                    if (length > maxLength && this.validChain(chain)) {
-                        maxLength = length
-                        newChain = chain
-                    }
+                // Check if the length is longer and the chain is valid
+                if (length > maxLength && Blockchain.validChain(chain)) {
+                    maxLength = length
+                    newChain = chain
                 }
             } catch (e) {
                 console.log("Something fishy happened!")
-                return false
             }
         }
 
@@ -185,6 +183,20 @@ class Blockchain {
         }
         return false
     }
+
+    /**
+     *  Validates the Proof
+     *  @param lastProof
+     *  @param proof: <int> Current Proof
+     *  @param lastHash
+     *  @return: <bool> True if correct, False if not.
+     */
+    static validProof(lastProof, proof, lastHash) {
+        const guess = lastProof + proof + lastHash
+        const guessHash = crypto.createHash("sha256").update(guess).digest("hex")
+        return guessHash.substr(0, 3) === "000"
+    }
+
 
 }
 
@@ -209,7 +221,7 @@ app.get('/mine', (req, res) => {
     )
 
     // Forge the new Block by adding it to the chain
-    let prevHash = blockchain.hash(lastBlock)
+    let prevHash = Blockchain.hash(lastBlock)
     let block = blockchain.newBlock(proof, prevHash)
 
     return res.send({
@@ -248,8 +260,8 @@ app.post('/nodes/register', bodyParser.json(), (req, res) => {
     })
 })
 
-app.get('/nodes/resolve', (req, res) => {
-    if (blockchain.resolveConflicts())
+app.get('/nodes/resolve', async (req, res) => {
+    if (await blockchain.resolveConflicts())
         return res.send({
             'message': 'Our chain was replaced',
             'new_chain': blockchain.chain
